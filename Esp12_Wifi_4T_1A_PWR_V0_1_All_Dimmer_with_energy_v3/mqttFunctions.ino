@@ -114,7 +114,7 @@ void mqtt_arrived(char* subTopic, byte* payload, unsigned int length) { // handl
 
     if (msgString.substring(0,5) == "D3_ON") 
   {
-    Serial.println("Dimmer1:99");
+    Serial.println("Dimmer3:99");
   } 
   else if (msgString.substring(0,6) == "D3_OFF") 
   {
@@ -132,7 +132,7 @@ void mqtt_arrived(char* subTopic, byte* payload, unsigned int length) { // handl
   } 
   else if (msgString.substring(0,6) == "D4_OFF") 
   {
-    Serial.println("Dimmer3:0");
+    Serial.println("Dimmer4:0");
   }
   else if (msgString.substring(0,8) == "Dimmer4:")
   { 
@@ -149,10 +149,17 @@ void mqtt_arrived(char* subTopic, byte* payload, unsigned int length) { // handl
   }
   else if (msgString.substring(0,6) == "P_CAL:")  //P_CAL:xxx,xxx
   { 
-   Sptemp= msgString.substring(6,9); 
-   Svtemp= msgString.substring(10,13);
-   calibrate(Sptemp.toFloat(),Svtemp.toFloat());
-
+    String  tempString_mqtt =msgString;
+  //float P,V;
+  int ind1; 
+  int ind2;
+  ind1=tempString_mqtt.indexOf(':');
+  ind2=tempString_mqtt.indexOf(',');
+  P=tempString_mqtt.substring(ind1+1,ind2+1).toFloat();
+  V=tempString_mqtt.substring(ind2+1).toFloat();
+  //Serial.println(P);
+  //Serial.println(V);
+  calflag=1;
    Serial.print("Settings written ");
    saveConfig()? Serial.println("sucessfully.") : Serial.println("not succesfully!");;
    Serial.print("Calibrated");
@@ -205,4 +212,3 @@ String getValue(String data, char separator, int index)
   }
   return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
-

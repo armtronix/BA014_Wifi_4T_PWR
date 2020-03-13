@@ -163,6 +163,20 @@ String mqtt_user = "";     //added on 28/07/2018
 String mqtt_passwd = "";   //added on 28/07/2018
 String mqtt_will_msg = " disconnected"; //added on 28/07/2018
 String mqtt_port = "";  //added on 14/02/2019
+
+float P,V;
+String Values_HLW8021;
+String Values_HLW8021_ActivePower;
+String Values_HLW8021_Voltage;
+String Values_HLW8021_Current;
+String Values_HLW8021_ApparentPower;
+String Values_HLW8021_Powerfactor;
+String Values_HLW8021_Energy;
+double setmulPower=0;
+double setmulCurrent=0;
+double setmulVoltage=0;
+int calflag =0;
+String pubTopic_HLW8021;
 String Sptemp = ""; //added on 14/02/2019
 String Svtemp = ""; //added on 14/02/2019
 //int Iptemp = 60; //load to be connected for calib //added on 14/02/2019
@@ -219,11 +233,12 @@ void ICACHE_RAM_ATTR hlw8012_cf_interrupt() {
 
 // Library expects an interrupt on both edges
 void setInterrupts() {
-  attachInterrupt(CF1_PIN, hlw8012_cf1_interrupt, FALLING);
-  attachInterrupt(CF_PIN, hlw8012_cf_interrupt, FALLING);
+  attachInterrupt(CF1_PIN, hlw8012_cf1_interrupt, CHANGE);
+  attachInterrupt(CF_PIN, hlw8012_cf_interrupt, CHANGE);
 }
 
-void calibrate(float power , float voltage) {
+void calibrate(float power_value , float voltage_value) {
+ /*
   delay(2000);
   Serial.println("Dimmer1:99");
   delay(100);
@@ -232,10 +247,11 @@ void calibrate(float power , float voltage) {
   Serial.println("Dimmer3:99");
   delay(100);
   Serial.println("Dimmer4:99");
+  */
   Serial.print("Power = ");
-  Serial.println(power);
+  Serial.println(power_value);
   Serial.print("Voltage = ");
-  Serial.println(voltage);
+  Serial.println(voltage_value);
   
 
   // Let some time to register values
@@ -245,9 +261,13 @@ void calibrate(float power , float voltage) {
   }
 
   // Calibrate using a 60W bulb (pure resistive) on a 230V line
-  hlw8012.expectedActivePower(power);
-  hlw8012.expectedVoltage(voltage);
-  hlw8012.expectedCurrent(power / voltage);
+    setmulPower=hlw8012.expectedActivePower(power_value);
+    setmulVoltage=hlw8012.expectedVoltage(voltage_value);
+    setmulCurrent=hlw8012.expectedCurrent(power_value / voltage_value);
+    
+    hlw8012.setCurrentMultiplier(setmulCurrent);
+    hlw8012.setVoltageMultiplier(setmulVoltage);
+    hlw8012.setPowerMultiplier(setmulPower);
 
   // Show corrected factors
   Serial.print("[HLW] New current multiplier : "); Serial.println(hlw8012.getCurrentMultiplier());
@@ -319,6 +339,9 @@ void setup()
   // * The VOLTAGE_RESISTOR_UPSTREAM are the 5 470kOhm resistors in the voltage divider that feeds the V2P pin in the HLW8012
   // * The VOLTAGE_RESISTOR_DOWNSTREAM is the 1kOhm resistor in the voltage divider that feeds the V2P pin in the HLW8012
   hlw8012.setResistors(CURRENT_RESISTOR, VOLTAGE_RESISTOR_UPSTREAM, VOLTAGE_RESISTOR_DOWNSTREAM);
+  hlw8012.setCurrentMultiplier(setmulCurrent);
+  hlw8012.setVoltageMultiplier(setmulVoltage);
+  hlw8012.setPowerMultiplier(setmulPower);
 
   // Show default (as per datasheet) multipliers
   Serial.print("[HLW] Default current multiplier : "); Serial.println(hlw8012.getCurrentMultiplier());
@@ -356,7 +379,7 @@ void setup()
 
 
 
-  calibrate(Sptemp.toFloat(),Svtemp.toFloat());
+ // calibrate(P,V);
 
 
 
@@ -420,7 +443,7 @@ void loop() {
   ////        Serial.println();
   //
   //     }
-  if ((millis() - last) > STATUS_UPDATE_TIME)
+ if ((millis() - last) > STATUS_UPDATE_TIME)
   {
     Serial.println("status:");
     Updated_power = hlw8012.getActivePower();
@@ -473,13 +496,50 @@ void loop() {
     }
     last = millis();
   }
+ if ((millis() - last) > UPDATE_TIME) 
+    {
 
+        last = millis();
+        
+        Values_HLW8021_ActivePower = String(hlw8012.getActivePower());
+        Values_HLW8021_Voltage = String(hlw8012.getVoltage());
+        Values_HLW8021_Current = String(hlw8012.getCurrent());
+       // Values_HLW8021_ApparentPower = String(hlw8012.getApparentPower());
+      //  Values_HLW8021_Powerfactor = String((int) (100 * hlw8012.getPowerFactor()));
+      //  Values_HLW8021_Energy = String(hlw8012.getEnergy());
+        
+        Serial.print("[HLW] Active Power (W)    : "); Serial.println(Values_HLW8021_ActivePower);
+        Serial.print("Power = ");
+        Serial.println(P);
+        Serial.print("Voltage = ");
+        Serial.println(V);
+        Serial.println();
+        
+        Values_HLW8021= "P:"+Values_HLW8021_ActivePower+"W"+", V:"+Values_HLW8021_Voltage+"V";
+        pubTopic_HLW8021=pubTopic+"/HLW8021";
+         if (mqttClient.connected()) 
+         {
+         mqttClient.publish((char*)pubTopic_HLW8021.c_str(), (char*)Values_HLW8021.c_str());
+         mqttClient.loop();
+         }
+    }
+    if(calflag ==1)
+   { 
+    calibrate(P,V);
+    calflag =0; 
+    saveConfig()? Serial.println("sucessfully.") : Serial.println("not succesfully!");;
+    ESP.wdtFeed();
+    delay(100);
+    WiFi.forceSleepBegin(); wdt_reset(); 
+    ESP.restart(); 
+    while(1)wdt_reset();
+   }
 
   if (mqttClient.connected())
   {
     if (mqtt_powpub == true)
     {
-      String temp_pow = "PIS" + (String)Updated_power;
+      String temp_pow = "PIS" + (String)Values_HLW8021_ActivePower;
       Serial.println(temp_pow);
       mqttClient.publish((char*)pubTopic.c_str(), (char*)temp_pow.c_str());
       mqtt_handler();
@@ -1158,6 +1218,3 @@ void fourthLightChanged(uint8_t brightness)
 
 }
 #endif
-
-
-

@@ -75,7 +75,7 @@ int dimming2 = 100;  //100
 int dimming3 = 100;  //100
 int dimming4 = 100;  //100
 
-int freqStep = 85;//85,82,80 //75*5 as prescalar is 16 for 80MHZ //77 for the led
+int freqStep = 93;//85,82,80 //75*5 as prescalar is 16 for 80MHZ //77 for the led
 
 
 /*Serial Data variables*/
@@ -758,8 +758,3 @@ String zero_adj(int val)
     return "0" + String(val);
   }
 }
-
-
-
-
-

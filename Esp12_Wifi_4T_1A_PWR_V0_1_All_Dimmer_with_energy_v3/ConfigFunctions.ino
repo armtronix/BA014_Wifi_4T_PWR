@@ -39,6 +39,12 @@ bool loadConfig() {
   String mqtt_portC = json["mqtt_port"];  //added on 28/07/2018
   String SptempC  = json["Sptemp"];  //added on 28/07/2018
   String SvtempC  = json["Svtemp"];  //added on 28/07/2018
+  String tempsetmulCurrentC=json["setmulCurrentJson"];
+  String tempsetmulVoltageC=json["setmulVoltageJson"];
+  String tempsetmulPowerC= json["setmulPowerJson"];
+  double setmulCurrentC = tempsetmulCurrentC.toFloat();
+  double setmulVoltageC = tempsetmulVoltageC.toFloat();
+  double setmulPowerC = tempsetmulPowerC.toFloat();
 #ifdef ALEXAEN
   String firstNameC = json["firstName"];
   String secondNameC = json["secondName"];
@@ -61,6 +67,10 @@ bool loadConfig() {
   mqtt_port = mqtt_portC; //added on 28/07/2018
   Sptemp=SptempC;  //added on 28/07/2018
   Svtemp=SvtempC;   //added on 28/07/2018
+  setmulCurrent =setmulCurrentC;
+  setmulVoltage = setmulVoltageC;
+  setmulPower = setmulPowerC;
+  
 #ifdef ALEXAEN
   firstName = firstNameC;
   secondName = secondNameC;
@@ -88,10 +98,16 @@ bool loadConfig() {
   Serial.println(mqtt_passwd);  //added on 28/07/2018
   Serial.print("mqtt_port: "); //added on 28/07/2018
   Serial.println(mqtt_port);  //added on 28/07/2018
-  Serial.print("Power:"); //added on 28/07/2018
-  Serial.println(Sptemp);  //added on 28/07/2018
-  Serial.print("Input voltage::"); //added on 28/07/2018
-  Serial.println(Svtemp);  //added on 28/07/2018
+ // Serial.print("Power:"); //added on 28/07/2018
+ // Serial.println(P);  //added on 28/07/2018
+ // Serial.print("Input voltage::"); //added on 28/07/2018
+ // Serial.println(V);  //added on 28/07/2018
+  Serial.print("setmulCurrent: ");
+  Serial.println(setmulCurrent);
+  Serial.print("setmulVoltage: ");
+  Serial.println(setmulVoltage);
+  Serial.print("setmulPower: ");
+  Serial.println(setmulPower);
 #ifdef ALEXAEN
   Serial.print("Device one: ");
   Serial.println(firstName);
@@ -124,6 +140,10 @@ bool saveConfig() {
   json["mqtt_port"] = mqtt_port; //added on 28/07/2018
   json["Sptemp"] = Sptemp; //added on 28/07/2018
   json["Svtemp"] = Svtemp; //added on 28/07/2018
+  json["setmulCurrentJson"] = String(setmulCurrent);
+  json["setmulVoltageJson"] = String(setmulVoltage);
+  json["setmulPowerJson"] = String(setmulPower);
+
 #ifdef ALEXAEN
   json["firstName"] = firstName;
   json["secondName"] = secondName;
@@ -152,4 +172,3 @@ bool clearConfig() {
   Debugln("DEBUG: In config clear!");
   return SPIFFS.format();
 }
-

@@ -667,6 +667,15 @@ void webHandleConfigSave(){
 //  qinputvoltage.replace("%2F", "/"); //added on 14/02/2019
 //  Serial.println("Got input voltage: " + qinputvoltage);  //added on 14/02/2019
 //  Svtemp=qinputvoltage.c_str();  //added on 14/02/2019
+ double voltage_reg = (VOLTAGE_RESISTOR_UPSTREAM +VOLTAGE_RESISTOR_DOWNSTREAM) / VOLTAGE_RESISTOR_DOWNSTREAM;
+  setmulPower=( 1000000.0 * 128 * V_REF * V_REF * voltage_reg / CURRENT_RESISTOR/ 48.0 / F_OSC );
+  setmulVoltage=( 1000000.0 * 512 * V_REF * voltage_reg / 2.0 / F_OSC );
+  setmulCurrent=( 1000000.0 * 512 * V_REF /CURRENT_RESISTOR / 24.0 / F_OSC );
+  
+  Serial.println("Got setmulPower: " + String(setmulPower));
+  Serial.println("Got setmulVoltage: " + String(setmulVoltage));
+  Serial.println("Got setmulCurrent: " + String(setmulCurrent));
+
 
 #ifdef ALEXAEN
 
@@ -695,8 +704,15 @@ void webHandleConfigSave(){
   fourthName = (char*) qfourthname.c_str();
 
 #endif
-
-
+/*  double voltage_reg = (VOLTAGE_RESISTOR_UPSTREAM +VOLTAGE_RESISTOR_DOWNSTREAM) / VOLTAGE_RESISTOR_DOWNSTREAM;
+  setmulPower=( 1000000.0 * 128 * V_REF * V_REF * voltage_reg / CURRENT_RESISTOR/ 48.0 / F_OSC );
+  setmulVoltage=( 1000000.0 * 512 * V_REF * voltage_reg / 2.0 / F_OSC );
+  setmulCurrent=( 1000000.0 * 512 * V_REF /CURRENT_RESISTOR / 24.0 / F_OSC );
+  
+  Serial.println("Got setmulPower: " + String(setmulPower));
+  Serial.println("Got setmulVoltage: " + String(setmulVoltage));
+  Serial.println("Got setmulCurrent: " + String(setmulCurrent));
+*/
   Serial.print("Settings written ");
   saveConfig()? Serial.println("sucessfully.") : Serial.println("not succesfully!");;
   Serial.println("Restarting!"); 
@@ -756,19 +772,24 @@ void webHandleCalibrationSave(){
   qpower = server.arg("power");//added on 14/02/2019
   qpower.replace("%2F", "/"); //added on 14/02/2019
   Serial.println("Got power: " + qpower); //added on 14/02/2019
+ // P=qpower.toFloat();  //added on 14/02/2019
   Sptemp=qpower.c_str();  //added on 14/02/2019
+  P=Sptemp.toFloat();
   
   String qinputvoltage;//qmqtt_port //added on 14/02/2019
   qinputvoltage = server.arg("inputvoltage"); //added on 14/02/2019
   qinputvoltage.replace("%2F", "/"); //added on 14/02/2019
   Serial.println("Got input voltage: " + qinputvoltage);  //added on 14/02/2019
+ // V=qinputvoltage.toFloat();  //added on 14/02/2019
+  
+  //calibrate(P,V);
   Svtemp=qinputvoltage.c_str();  //added on 14/02/2019
+  V=Svtemp.toFloat();
   calibrate(Sptemp.toFloat(),Svtemp.toFloat());
-
   
   Serial.print("Settings written ");
   saveConfig()? Serial.println("sucessfully.") : Serial.println("not succesfully!");;
-  Serial.print("Calibrated");
+  Serial.print("Calibrated");         
 }
 
 
@@ -928,7 +949,13 @@ void webHandleGpio(){
     s += "</script>";
 
    //server.send(200, "text/html", s);
-   server.send_P(200, "text/html", INDEX_HTML);  
+   server.send_P(200, "text/html", INDEX_HTML); 
+   
+    if(server.arg("reboot")=="1")
+    {
+     ESP.reset(); 
+    }
+      
 }
 
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
@@ -947,11 +974,22 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         case WStype_TEXT:
             Serial.printf("[%u] get Text: %s\n", num, payload);
            //  Serial.write((const char *)payload);
-            if(payload[2]=='0')
+           if(payload[0]=='P'&& payload[1]=='V')
             {
-             // Serial.println("%s",payload);
-             // tarBrightness =payload;
+              String tempString_http=(const char *)payload;
+              int ind1; 
+              int ind2;
+              ind1=tempString_http.indexOf(':');
+              ind2=tempString_http.indexOf(',');
+              P=tempString_http.substring(ind1+1,ind2+1).toFloat();
+              V=tempString_http.substring(ind2+1).toFloat();
+              calflag=1;
             }
+        //    if(payload[2]=='0')
+         //   {
+         //     Serial.println("%s",payload);
+         //     tarBrightness =payload;
+         //   }
             if(payload[2]=='1')
             {   String dum1=(const char *)payload;
                 //Serial.write((const char *)payload);
@@ -1024,7 +1062,7 @@ void buildXML(){
   XML="<?xml version='1.0'?>";
   XML="<Title>";
   XML+="<activepower>";
-  XML+=myActivePower();
+  XML+=Values_HLW8021_ActivePower;
   XML+="</activepower>";
   XML+="<dim1>";
   XML+=Status_triac_dim1();
