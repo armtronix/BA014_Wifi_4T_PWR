@@ -65,6 +65,7 @@ unsigned long dimval4 = 0; //Button press time counter
 int button_press_flag4 = 1;
 byte curBrightness4 = 0;
 byte i = 0;
+int flag =0;
 /* ZCD */
 
 #define ZCD_INT 0  //Arduino GPIO2 
@@ -141,11 +142,12 @@ int dimvalue4;
 
 void setup()
 {
-  delay(100);
+
   Serial.begin(115200);
+  delay(100);
   Serial.println("WiFi-4T channel 1A PWR board");
   Serial.println(version_no);
-
+    
   pinMode(DIMMER_1, OUTPUT); //Dimmer_1 output
   pinMode(DIMMER_2, OUTPUT); //Dimmer_2 output
   pinMode(DIMMER_3, OUTPUT); //Dimmer_3 output
@@ -165,6 +167,10 @@ void setup()
 
   digitalWrite(LED_1, HIGH);
   digitalWrite(LED_2, HIGH);
+  digitalWrite(DIMMER_1, LOW);
+  digitalWrite(DIMMER_2, LOW);
+  digitalWrite(DIMMER_3, LOW);
+  digitalWrite(DIMMER_4, LOW);
 
 
 }
@@ -184,7 +190,7 @@ void btn_handle()
       button_press_flag1 = 0;
       if (count_regulator1 <= 9)
       {
-        count_regulator1 = count_regulator1 + 10;
+        count_regulator1 = count_regulator1 + 10;;
       }
       else
       {
@@ -204,7 +210,7 @@ void btn_handle()
         int_regulator1 = dimval1;
       }
       else
-      {
+      {       
         count_regulator1 = 0;
         //Serial.print("Reg1 VAL:");
         //Serial.println(count_regulator1);
@@ -491,16 +497,18 @@ void loop()
 {
 
   i++;
-
+  
   if (i >= 100)
   {
+      
     btn_handle();
-
+    
     regulator_value_temp1 = "Dimmer1:" + String((int_regulator1));
     regulator_value_temp2 = "Dimmer2:" + String((int_regulator2));
     regulator_value_temp3 = "Dimmer3:" + String((int_regulator3));
     regulator_value_temp4 = "Dimmer4:" + String((int_regulator4));
     i = 0;
+    
   }
 
 
